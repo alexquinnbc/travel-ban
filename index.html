@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive Travel Ban Guide</title>
+    <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <style>
+        :root {
+            --bg-color: #1a1a1a;
+            --surface-color: #2a2a2a;
+            --primary-text: #e0e0e0;
+            --secondary-text: #a0a0a0;
+            --accent-color: #00aaff;
+            --border-color: #444;
+            --hover-color: #333;
+            --status-full: #ff4d4d;
+            --status-partial: #ffaa4d;
+            --status-none: #4dff88;
+            --font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji";
+        }
+
+        body {
+            font-family: var(--font-family);
+            background-color: var(--bg-color);
+            color: var(--primary-text);
+            margin: 0;
+            padding: 0 1rem;
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 2rem auto;
+            padding: 2rem;
+            background-color: var(--surface-color);
+            border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+
+        header h1 {
+            color: var(--primary-text);
+            margin-bottom: 0.5rem;
+            text-align: center;
+            font-size: 2.5rem;
+        }
+
+        header p {
+            text-align: center;
+            color: var(--secondary-text);
+            margin-top: 0;
+            font-size: 1.1rem;
+        }
+        
+        .nav-tabs { display: flex; border-bottom: 1px solid var(--border-color); margin-bottom: 2rem; }
+        .nav-button { padding: 0.8rem 1.5rem; cursor: pointer; background: none; border: none; color: var(--secondary-text); font-size: 1rem; font-weight: bold; border-bottom: 3px solid transparent; transition: all 0.3s ease; }
+        .nav-button:hover { color: var(--primary-text); }
+        .nav-button.active { color: var(--accent-color); border-bottom-color: var(--accent-color); }
+
+        .tool-section { background-color: var(--bg-color); padding: 2rem; border-radius: 8px; margin-bottom: 2rem; border: 1px solid var(--border-color); }
+        label { display: block; margin-bottom: 0.5rem; font-weight: bold; color: var(--secondary-text); }
+        select { width: 100%; padding: 0.8rem; background-color: var(--surface-color); color: var(--primary-text); border: 1px solid var(--border-color); border-radius: 6px; font-size: 1.1rem; cursor: pointer; }
+
+        .result-card { margin-top: 2rem; padding: 1.5rem; border: 1px solid var(--border-color); border-radius: 8px; animation: fadeIn 0.5s ease-in-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
+
+        .status-pill { display: inline-block; padding: 0.3rem 0.8rem; border-radius: 20px; font-weight: bold; color: #111; font-size: 0.9rem; }
+        .result-card .status-pill { margin-left: 1rem; }
+        .status-full { background-color: var(--status-full); }
+        .status-partial { background-color: var(--status-partial); }
+        .status-none { background-color: var(--status-none); }
+
+        .result-card h3 { margin-top: 0; font-size: 1.5rem; display: flex; align-items: center; gap: 0.75rem; }
+        .result-card h4 { color: var(--secondary-text); border-bottom: 1px solid var(--border-color); padding-bottom: 0.5rem; margin-top: 1.5rem; }
+        .result-card ul, .help-section ul { padding-left: 20px; }
+        .result-card li, .help-section li { margin-bottom: 0.5rem; }
+
+        /* New Overview Table Styles */
+        .overview-table { margin-bottom: 2rem; background: var(--bg-color); border: 1px solid var(--border-color); border-radius: 8px; padding: 1rem; }
+        .overview-table h2 { text-align: center; margin-top: 0.5rem; }
+        .overview-table p { text-align: center; color: var(--secondary-text); font-size: 0.9rem; margin-top: -1rem; margin-bottom: 2rem;}
+        
+        .responsive-table-container { overflow-x: auto; }
+        
+        table { width: 100%; border-collapse: collapse; }
+        th, td { padding: 0.8rem 1rem; text-align: left; border-bottom: 1px solid var(--border-color); }
+        th { font-weight: bold; color: var(--secondary-text); }
+        tbody tr { cursor: pointer; transition: background-color 0.2s ease-in-out; }
+        tbody tr:hover { background-color: var(--hover-color); }
+        td.country-name { font-weight: 500; }
+        .group-header-row td { background-color: var(--hover-color); font-weight: bold; color: var(--accent-color); cursor: default; }
+
+        .faq-section h2, .help-section h2 { text-align: center; }
+        details { background: var(--bg-color); border: 1px solid var(--border-color); border-radius: 6px; margin-bottom: 0.5rem; padding: 0.5rem 1rem; }
+        summary { font-weight: bold; cursor: pointer; padding: 0.5rem 0; color: var(--accent-color); }
+        
+        .help-section { padding: 1rem 2rem; background-color: var(--bg-color); border: 1px solid var(--border-color); border-radius: 8px; }
+        .help-section h3 { color: var(--accent-color); }
+        .help-section a { color: var(--accent-color); text-decoration: none; }
+        .help-section a:hover { text-decoration: underline; }
+
+        footer { text-align: center; margin-top: 2rem; font-size: 0.9rem; color: var(--secondary-text); }
+        footer a { color: var(--accent-color); text-decoration: none; }
+    </style>
+</head>
+<body x-data="travelGuide()">
+    <div class="container">
+        <header>
+            <h1>Interactive Travel Ban Guide</h1>
+            <p>An unofficial tool to understand U.S. travel restrictions.</p>
+        </header>
+
+        <main>
+            <nav class="nav-tabs">
+                <button @click="activeTab = 'checker'" :class="{ 'active': activeTab === 'checker' }" class="nav-button">Status Checker</button>
+                <button @click="activeTab = 'help'" :class="{ 'active': activeTab === 'help' }" class="nav-button">Get Help & Resources</button>
+            </nav>
+
+            <div x-show="activeTab === 'checker'" x-transition>
+                <section class="tool-section" id="status-checker">
+                    <h2>Check Your Travel Status</h2>
+                    <label for="country-selector">Select your country of nationality:</label>
+                    <select id="country-selector" x-model="selectedCountryKey" @change="scrollToResults('smooth')">
+                        <option value="">-- Please select a country --</option>
+                        <template x-for="country in countries" :key="country.key">
+                            <option :value="country.key" x-text="country.flag + ' ' + country.name"></option>
+                        </template>
+                    </select>
+
+                    <div x-show="selectedCountryKey" x-transition class="result-card" id="result-card">
+                        <template x-if="selectedCountryData">
+                            <div>
+                                <h3>
+                                    <span x-text="selectedCountryData.flag"></span>
+                                    <span x-text="selectedCountryData.name"></span>
+                                    <span class="status-pill" :class="'status-' + selectedCountryData.status" x-text="selectedCountryData.statusText"></span>
+                                </h3>
+                                <p x-text="selectedCountryData.summary"></p>
+                                <div x-show="selectedCountryData.reason">
+                                    <h4>Stated Reasons for Restrictions</h4>
+                                    <div x-html="selectedCountryData.reason"></div>
+                                </div>
+                            </div>
+                        </template>
+                    </div>
+                </section>
+
+                <!-- NEW: Interactive Overview Table -->
+                <section class="overview-table">
+                    <h2>Global Overview</h2>
+                    <p>Click any country row to view its details in the checker above.</p>
+                    <div class="responsive-table-container">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Country</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <!-- Full Ban Countries -->
+                            <tbody>
+                                <tr class="group-header-row"><td colspan="2">Full Entry Ban</td></tr>
+                                <template x-for="country in fullBanCountries" :key="country.key">
+                                    <tr @click="selectedCountryKey = country.key; scrollToResults()">
+                                        <td class="country-name" x-text="country.flag + ' ' + country.name"></td>
+                                        <td><span class="status-pill status-full" x-text="country.statusText"></span></td>
+                                    </tr>
+                                </template>
+                            </tbody>
+                            <!-- Partial Ban Countries -->
+                            <tbody>
+                                <tr class="group-header-row"><td colspan="2">Partial Entry Ban</td></tr>
+                                <template x-for="country in partialBanCountries" :key="country.key">
+                                    <tr @click="selectedCountryKey = country.key; scrollToResults()">
+                                        <td class="country-name" x-text="country.flag + ' ' + country.name"></td>
+                                        <td><span class="status-pill status-partial" x-text="country.statusText"></span></td>
+                                    </tr>
+                                </template>
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
+
+                <section class="faq-section">
+                    <h2>Frequently Asked Questions</h2>
+                    <details>
+                        <summary>Are there any exceptions or waivers?</summary>
+                        <p>Yes. The proclamation states that restrictions do not apply to certain individuals, including: Lawful Permanent Residents (Green Card holders), individuals holding a valid U.S. visa on the proclamation's effective date, dual nationals traveling on a passport from a non-restricted country, and individuals whose entry is deemed to be in the U.S. national interest. Always consult official sources.</p>
+                    </details>
+                    <details>
+                        <summary>What are the general reasons for these restrictions?</summary>
+                        <p>The stated reasons focus on national security and public safety, including: inadequate security vetting by the home country, terrorism concerns, high visa overstay rates, and a lack of cooperation in accepting nationals subject to removal from the U.S.</p>
+                    </details>
+                </section>
+            </div>
+            
+            <div x-show="activeTab === 'help'" x-transition:enter.duration.500ms>
+                 <section class="help-section">
+                    <h2>How to Get Help & Useful Links</h2>
+                    <p>Navigating immigration law can be complex. If you or someone you know is affected by these restrictions, consider the following steps and resources. This is not legal advice.</p>
+                    <h3>1. Seek Professional Legal Advice</h3>
+                    <p>Immigration law is highly specific. An experienced immigration attorney is the best resource for advice tailored to your individual situation.</p>
+                    <ul>
+                        <li><a href="https://www.aila.org/get-help/find-an-immigration-lawyer" target="_blank" rel="noopener noreferrer">American Immigration Lawyers Association (AILA) Lawyer Search</a></li>
+                        <li><a href="https://www.immigrationadvocates.org/nonprofit/legaldirectory/" target="_blank" rel="noopener noreferrer">Immigration Advocates Network - Legal Directory</a></li>
+                    </ul>
+                    <h3>2. Check Official Government Sources</h3>
+                    <p>For the most accurate and up-to-date information, always refer to official U.S. government websites.</p>
+                    <ul>
+                        <li><a href="https://travel.state.gov/" target="_blank" rel="noopener noreferrer">U.S. Department of State - Bureau of Consular Affairs</a></li>
+                        <li><a href="https://www.uscis.gov/" target="_blank" rel="noopener noreferrer">U.S. Citizenship and Immigration Services (USCIS)</a></li>
+                        <li><a href="https://www.cbp.gov/" target="_blank" rel="noopener noreferrer">U.S. Customs and Border Protection (CBP)</a></li>
+                        <li><a href="https://www.whitehouse.gov/briefing-room/presidential-actions/" target="_blank" rel="noopener noreferrer">Official White House Proclamations</a></li>
+                    </ul>
+                 </section>
+            </div>
+        </main>
+
+        <footer>
+            <p><strong>Disclaimer:</strong> This is an unofficial, informational tool. It is not legal advice. All data is based on the proclamation text. Please consult the <a href="https://www.whitehouse.gov/presidential-actions/2025/06/restricting-the-entry-of-foreign-nationals-to-protect-the-united-states-from-foreign-terrorists-and-other-national-security-and-public-safety-threats/" target="_blank" rel="noopener noreferrer">official White House proclamation</a> for definitive guidance.</p>
+        </footer>
+    </div>
+
+<script>
+function travelGuide() {
+    return {
+        activeTab: 'checker',
+        selectedCountryKey: '',
+        countriesData: {
+            'afghanistan': { name: 'Afghanistan', flag: '🇦🇫', status: 'full', statusText: 'Full Ban', summary: 'Entry is fully restricted for nationals of Afghanistan.', reason: '<ul><li>Controlled by the Taliban (Specially Designated Global Terrorist group).</li><li>Lacks competent central authority for documents and screening.</li><li>High visa overstay rates.</li></ul>' },
+            'burma': { name: 'Burma (Myanmar)', flag: '🇲🇲', status: 'full', statusText: 'Full Ban', summary: 'Entry is fully restricted for nationals of Burma.', reason: '<ul><li>High visa overstay rates.</li><li>Historically has not cooperated to accept back removable nationals.</li></ul>' },
+            'chad': { name: 'Chad', flag: '🇹🇩', status: 'full', statusText: 'Full Ban', summary: 'Entry is fully restricted for nationals of Chad.', reason: '<ul><li>Extremely high visa overstay rates.</li></ul>' },
+            'congo_republic': { name: 'Republic of the Congo', flag: '🇨🇬', status: 'full', statusText: 'Full Ban', summary: 'Entry is fully restricted for nationals of the Republic of the Congo.', reason: '<ul><li>High visa overstay rates.</li></ul>' },
+            'equatorial_guinea': { name: 'Equatorial Guinea', flag: '🇬🇶', status: 'full', statusText: 'Full Ban', summary: 'Entry is fully restricted for nationals of Equatorial Guinea.', reason: '<ul><li>Extremely high visa overstay rates.</li></ul>' },
+            'eritrea': { name: 'Eritrea', flag: '🇪🇷', status: 'full', statusText: 'Full Ban', summary: 'Entry is fully restricted for nationals of Eritrea.', reason: '<ul><li>Competence of document-issuing authority questioned.</li><li>Historically refused to accept back removable nationals.</li><li>High visa overstay rates.</li></ul>' },
+            'haiti': { name: 'Haiti', flag: '🇭🇹', status: 'full', statusText: 'Full Ban', summary: 'Entry is fully restricted for nationals of Haiti.', reason: '<ul><li>High visa overstay rates.</li><li>Influx of illegal aliens creates risks of criminal networks and national security threats.</li></ul>' },
+            'iran': { name: 'Iran', flag: '🇮🇷', status: 'full', statusText: 'Full Ban', summary: 'Entry is fully restricted for nationals of Iran.', reason: '<ul><li>Identified as a state sponsor of terrorism.</li><li>Fails to cooperate in identifying security risks.</li></ul>' },
+            'libya': { name: 'Libya', flag: '🇱🇾', status: 'full', statusText: 'Full Ban', summary: 'Entry is fully restricted for nationals of Libya.', reason: '<ul><li>No competent or cooperative central authority for documents.</li><li>Historical terrorist presence.</li></ul>' },
+            'somalia': { name: 'Somalia', flag: '🇸🇴', status: 'full', statusText: 'Full Ban', summary: 'Entry is fully restricted for nationals of Somalia.', reason: '<ul><li>Lacks competent central authority.</li><li>Identified as a terrorist safe haven.</li></ul>' },
+            'sudan': { name: 'Sudan', flag: '🇸🇩', status: 'full', statusText: 'Full Ban', summary: 'Entry is fully restricted for nationals of Sudan.', reason: '<ul><li>Lacks competent central authority.</li><li>High visa overstay rates.</li></ul>' },
+            'yemen': { name: 'Yemen', flag: '🇾🇪', status: 'full', statusText: 'Full Ban', summary: 'Entry is fully restricted for nationals of Yemen.', reason: '<ul><li>Lacks competent central authority.</li><li>Site of active U.S. military operations.</li></ul>' },
+            'burundi': { name: 'Burundi', flag: '🇧🇮', status: 'partial', statusText: 'Partial Ban', summary: 'Entry is partially restricted. Applies to Immigrants and Nonimmigrants on B, F, M, and J Visas.', reason: '<ul><li>High visa overstay rates.</li></ul>' },
+            'cuba': { name: 'Cuba', flag: '🇨🇺', status: 'partial', statusText: 'Partial Ban', summary: 'Entry is partially restricted. Applies to Immigrants and Nonimmigrants on B, F, M, and J Visas.', reason: '<ul><li>Identified as a state sponsor of terrorism.</li><li>Does not share sufficient law enforcement information.</li></ul>' },
+            'laos': { name: 'Laos', flag: '🇱🇦', status: 'partial', statusText: 'Partial Ban', summary: 'Entry is partially restricted. Applies to Immigrants and Nonimmigrants on B, F, M, and J Visas.', reason: '<ul><li>High visa overstay rates.</li><li>Historically failed to accept back removable nationals.</li></ul>' },
+            'sierra_leone': { name: 'Sierra Leone', flag: '🇸🇱', status: 'partial', statusText: 'Partial Ban', summary: 'Entry is partially restricted. Applies to Immigrants and Nonimmigrants on B, F, M, and J Visas.', reason: '<ul><li>High visa overstay rates.</li><li>Historically failed to accept back removable nationals.</li></ul>' },
+            'togo': { name: 'Togo', flag: '🇹🇬', status: 'partial', statusText: 'Partial Ban', summary: 'Entry is partially restricted. Applies to Immigrants and Nonimmigrants on B, F, M, and J Visas.', reason: '<ul><li>High visa overstay rates.</li></ul>' },
+            'turkmenistan': { name: 'Turkmenistan', flag: '🇹🇲', status: 'partial', statusText: 'Partial Ban', summary: 'Entry is partially restricted. Applies to Immigrants and Nonimmigrants on B, F, M, and J Visas.', reason: '<ul><li>High visa overstay rates.</li></ul>' },
+            'venezuela': { name: 'Venezuela', flag: '🇻🇪', status: 'partial', statusText: 'Partial Ban', summary: 'Entry is partially restricted. Applies to Immigrants and Nonimmigrants on B, F, M, and J Visas.', reason: '<ul><li>Lacks competent central authority.</li><li>Historically refused to accept back removable nationals.</li></ul>' },
+            'canada': { name: 'Canada', flag: '🇨🇦', status: 'none', statusText: 'No Ban', summary: 'There are no new restrictions for nationals of this country under this proclamation.', reason: null },
+            'germany': { name: 'Germany', flag: '🇩🇪', status: 'none', statusText: 'No Ban', summary: 'There are no new restrictions for nationals of this country under this proclamation.', reason: null },
+            'japan': { name: 'Japan', flag: '🇯🇵', status: 'none', statusText: 'No Ban', summary: 'There are no new restrictions for nationals of this country under this proclamation.', reason: null },
+        },
+        get countries() {
+            return Object.entries(this.countriesData).map(([key, value]) => ({ key, ...value })).sort((a, b) => a.name.localeCompare(b.name));
+        },
+        get selectedCountryData() {
+            return this.countriesData[this.selectedCountryKey] || null;
+        },
+        // NEW: Computed properties for the overview table
+        get fullBanCountries() {
+            return this.countries.filter(c => c.status === 'full');
+        },
+        get partialBanCountries() {
+            return this.countries.filter(c => c.status === 'partial');
+        },
+        scrollToResults(behavior = 'auto') {
+            this.$nextTick(() => { 
+                const el = document.getElementById('status-checker');
+                if(el) {
+                    el.scrollIntoView({ behavior: behavior, block: 'start' });
+                }
+             });
+        },
+        init() {
+            console.log('Travel Guide v3 Initialized.');
+        }
+    }
+}
+</script>
+</body>
+</html>
